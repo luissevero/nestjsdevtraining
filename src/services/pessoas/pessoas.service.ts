@@ -1,20 +1,28 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { Injectable, NotFoundException, NotAcceptableException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
+import { Repository } from 'typeorm'
+
 import { Pessoa } from 'src/entities/pessoas/PessoaEntity'
+import { PessoaEndereco } from 'src/entities/pessoas_enderecos/PessoaEnderecoEntity'
+
 import { CreatePessoaDto } from 'src/entities/pessoas/dto/create-pessoa.dto'
 import { UpdatePessoaDto } from 'src/entities/pessoas/dto/update-pessoa.dto'
-import { Repository } from 'typeorm'
 
 @Injectable()
 export class PessoasService {
 
     constructor(
         @InjectRepository(Pessoa)
-        private readonly pessoaRepository: Repository<Pessoa>
+        private readonly pessoaRepository: Repository<Pessoa>,
+
+        @InjectRepository(PessoaEndereco)
+        private readonly pessoaEnderecoRepository: Repository<PessoaEndereco>
     ) {}
 
     findAll(){
-        return this.pessoaRepository.find()
+        return this.pessoaRepository.find({
+            relations: ['enderecos']
+        })
     }
 
     findOne(id: string){
@@ -28,9 +36,31 @@ export class PessoasService {
         return pessoa
     }
 
-    create(createPessoaDto: CreatePessoaDto){
-        const pessoa = this.pessoaRepository.create(createPessoaDto)
-        return this.pessoaRepository.save(pessoa)
+    async create(createPessoaDto: CreatePessoaDto){
+        try{
+        
+            if(!createPessoaDto.endereco.bairro){
+                throw new NotAcceptableException('Bairro não informado!')
+            }
+            if(!createPessoaDto.endereco.cep){
+                throw new NotAcceptableException('CEP não informado!')
+            }
+            if(!createPessoaDto.endereco.endereco){
+                throw new NotAcceptableException('Endereço não informado!')
+            }
+            /*
+            if(!createPessoaDto.endereco.numero){
+                throw new NotAcceptableException('Número não informado!')
+            }
+            */
+            const pessoa = await this.pessoaRepository.create(createPessoaDto)
+            const retorno = await this.pessoaRepository.save(pessoa)
+            
+            const ret = await this.savePessoaEndereco(retorno, createPessoaDto.endereco)
+            return ret
+        }catch(error){
+            throw new Error(error)
+        }
     }
 
     async update(id: string, updatePessoaDto: UpdatePessoaDto){
@@ -45,4 +75,13 @@ export class PessoasService {
         return this.pessoaRepository.save(pessoa)
     }
 
+    private async savePessoaEndereco(id_pessoa: Pessoa, end: PessoaEndereco): Promise<PessoaEndereco>{
+        try{
+            end.id_pessoa = id_pessoa
+            const endereco = await this.pessoaEnderecoRepository.create(end)
+            return this.pessoaEnderecoRepository.save(endereco)
+        }catch(error){
+            throw new Error(error)
+        }
+    }
 }

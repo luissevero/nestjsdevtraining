@@ -1,5 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
-
+import { Column, Entity, PrimaryGeneratedColumn} from 'typeorm'
 
 @Entity('pessoas')
 export class Pessoa {
@@ -18,5 +17,4 @@ export class Pessoa {
 
     @Column()
     senha: string
-    
 }

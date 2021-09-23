@@ -1,4 +1,5 @@
-import { IsString, IsNumber } from "class-validator"
+import { IsString, IsNumber, IsObject } from "class-validator"
+import { PessoaEndereco } from "src/entities/pessoas_enderecos/PessoaEnderecoEntity"
 
 export class CreatePessoaDto {
     
@@ -13,5 +14,8 @@ export class CreatePessoaDto {
 
     @IsString()
     readonly senha: string
-    
+
+    @IsObject({each: true})
+    readonly endereco: PessoaEndereco
+
 }
